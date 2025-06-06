@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Battle City Web</title>
+    <link rel="stylesheet" href="estilos.css">
+</head>
+<body>
+    <header id="barraHeader">
+        <span id="infoNivel">Nivel: 1</span>
+        <span id="infoEnemigos">Enemigos: 2</span>
+        <span id="infoRestantes">Restantes: 2 / 2</span>
+        <span id="infoVidas">Vidas: 3</span>
+    </header>
+    <canvas id="lienzoJuego"></canvas>
+    <script src="juego.js"></script>
+    <script>
+        // Deshabilitar click derecho
+        document.addEventListener('contextmenu', function(evento) {
+            evento.preventDefault();
+        });
+    </script>
+</body>
+</html>
