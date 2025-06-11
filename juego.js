@@ -21,16 +21,32 @@ const TIPOS_PARED = {
     arbusto: { color: '#3E8914', vida: 1, destructible: false }
 };
 
-const imagenTanqueUsuario = new Image();
-imagenTanqueUsuario.src = 'img/t_usuario.png';
-const imagenTanqueEnemigo = new Image();
-imagenTanqueEnemigo.src = 'img/t_enemigo.png';
+// Cargar imágenes del tanque del jugador
+const imagenTanqueUsuarioArriba = new Image();
+imagenTanqueUsuarioArriba.src = 'img/tank_ali_arriba.png';
+const imagenTanqueUsuarioAbajo = new Image();
+imagenTanqueUsuarioAbajo.src = 'img/tank_ali_abajo.png';
+const imagenTanqueUsuarioIzquierda = new Image();
+imagenTanqueUsuarioIzquierda.src = 'img/tank_ali_izquierda.png';
+const imagenTanqueUsuarioDerecha = new Image();
+imagenTanqueUsuarioDerecha.src = 'img/tank_ali_derecha.png';
+
+// Cargar imágenes de los tanques enemigos
+const imagenTanqueEnemigoArriba = new Image();
+imagenTanqueEnemigoArriba.src = 'img/tank_ene_arriba.png';
+const imagenTanqueEnemigoAbajo = new Image();
+imagenTanqueEnemigoAbajo.src = 'img/tank_ene_abajo.png';
+const imagenTanqueEnemigoIzquierda = new Image();
+imagenTanqueEnemigoIzquierda.src = 'img/tank_ene_izquierda.png';
+const imagenTanqueEnemigoDerecha = new Image();
+imagenTanqueEnemigoDerecha.src = 'img/tank_ene_derecha.png';
+
+// Imagen del águila
 const imagenAguila = new Image();
 imagenAguila.src = 'img/aguila.png';
 
 function redimensionarLienzo() {
     let altoHeader = document.getElementById('barraHeader').offsetHeight || 24;
-    // Calcular el tamaño de celda máximo que quepa en la ventana
     const anchoDisponible = window.innerWidth;
     const altoDisponible = window.innerHeight - altoHeader;
     TAM_CELDA = Math.floor(Math.min(anchoDisponible / COLUMNAS_MAPA, altoDisponible / FILAS_MAPA));
@@ -113,9 +129,11 @@ class Tanque {
         this.disparos = [];
         this.tiempoDisparo = 0;
     }
+    
     obtenerRectangulo(dx=0, dy=0) {
         return {x: this.x+dx, y: this.y+dy, w: this.w, h: this.h};
     }
+    
     puedeMover(dx, dy) {
         let nx = this.x + dx*this.velocidad, ny = this.y + dy*this.velocidad;
         if(nx < 0 || ny < 0 || nx+this.w > lienzo.width || ny+this.h > lienzo.height) return false;
@@ -128,12 +146,14 @@ class Tanque {
         }
         return true;
     }
+    
     mover(dx, dy) {
         if(this.puedeMover(dx, dy)) {
             this.x += dx*this.velocidad;
             this.y += dy*this.velocidad;
         }
     }
+    
     disparar() {
         if (this.tiempoDisparo <= 0) {
             let px = this.x + this.w/2 - 4;
@@ -148,6 +168,7 @@ class Tanque {
             this.tiempoDisparo = 30;
         }
     }
+    
     actualizarDisparos() {
         this.disparos.forEach(d => {
             if (d.direccion === 'U') d.y -= d.velocidad;
@@ -160,14 +181,29 @@ class Tanque {
         );
         if (this.tiempoDisparo > 0) this.tiempoDisparo--;
     }
+    
     dibujar() {
-        let imagen = this.esUsuario ? imagenTanqueUsuario : imagenTanqueEnemigo;
-        contexto.save();
-        contexto.translate(this.x + this.w/2, this.y + this.h/2);
-        let angulo = { 'U':0, 'R':Math.PI/2, 'D':Math.PI, 'L':-Math.PI/2 }[this.direccion];
-        contexto.rotate(angulo);
-        contexto.drawImage(imagen, -this.w/2, -this.h/2, this.w, this.h);
-        contexto.restore();
+        if (this.esUsuario) {
+            // Seleccionar la imagen adecuada según la dirección para el jugador
+            let imagen;
+            switch(this.direccion) {
+                case 'U': imagen = imagenTanqueUsuarioArriba; break;
+                case 'D': imagen = imagenTanqueUsuarioAbajo; break;
+                case 'L': imagen = imagenTanqueUsuarioIzquierda; break;
+                case 'R': imagen = imagenTanqueUsuarioDerecha; break;
+            }
+            contexto.drawImage(imagen, this.x, this.y, this.w, this.h);
+        } else {
+            // Seleccionar la imagen adecuada según la dirección para los enemigos
+            let imagen;
+            switch(this.direccion) {
+                case 'U': imagen = imagenTanqueEnemigoArriba; break;
+                case 'D': imagen = imagenTanqueEnemigoAbajo; break;
+                case 'L': imagen = imagenTanqueEnemigoIzquierda; break;
+                case 'R': imagen = imagenTanqueEnemigoDerecha; break;
+            }
+            contexto.drawImage(imagen, this.x, this.y, this.w, this.h);
+        }
     }
 }
 
