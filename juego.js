@@ -14,6 +14,9 @@ let nivel = 1;
 
 const VIDAS_JUGADOR_MAX = 3;
 
+// Ajusta este valor para el "margen" de las paredes (en píxeles)
+const PARED_OFFSET = 6;
+
 const TIPOS_PARED = {
     ladrillo: { color: '#C1440E', vida: 2, destructible: true },
     metal: { color: '#888', vida: 6, destructible: true },
@@ -73,26 +76,58 @@ function crearMapa() {
         for(let c=0; c<COLUMNAS_MAPA; c++) {
             if(f === 0 || f === FILAS_MAPA-1 || c === 0 || c === COLUMNAS_MAPA-1) {
                 fila.push('metal');
-                paredes.push({ tipo: 'metal', x: c*TAM_CELDA, y: f*TAM_CELDA, w: TAM_CELDA, h: TAM_CELDA, vida: TIPOS_PARED['metal'].vida });
-            }
-            else if(f === FILAS_MAPA-3 && (c === Math.floor(COLUMNAS_MAPA/2)-1 || c === Math.floor(COLUMNAS_MAPA/2)+1)) {
-                fila.push('ladrillo');
-                paredes.push({ tipo: 'ladrillo', x: c*TAM_CELDA, y: f*TAM_CELDA, w: TAM_CELDA, h: TAM_CELDA, vida: TIPOS_PARED['ladrillo'].vida });
-            }
-            else if(f === FILAS_MAPA-2 && (c >= Math.floor(COLUMNAS_MAPA/2)-1 && c <= Math.floor(COLUMNAS_MAPA/2)+1)) {
-                fila.push('ladrillo');
-                paredes.push({ tipo: 'ladrillo', x: c*TAM_CELDA, y: f*TAM_CELDA, w: TAM_CELDA, h: TAM_CELDA, vida: TIPOS_PARED['ladrillo'].vida });
+                paredes.push({
+                    tipo: 'metal',
+                    x: c*TAM_CELDA + PARED_OFFSET/2,
+                    y: f*TAM_CELDA + PARED_OFFSET/2,
+                    w: TAM_CELDA - PARED_OFFSET,
+                    h: TAM_CELDA - PARED_OFFSET,
+                    vida: TIPOS_PARED['metal'].vida
+                });
             }
             else if(Math.random() < 0.06) {
                 fila.push('metal');
-                paredes.push({ tipo: 'metal', x: c*TAM_CELDA, y: f*TAM_CELDA, w: TAM_CELDA, h: TAM_CELDA, vida: TIPOS_PARED['metal'].vida });
+                paredes.push({
+                    tipo: 'metal',
+                    x: c*TAM_CELDA + PARED_OFFSET/2,
+                    y: f*TAM_CELDA + PARED_OFFSET/2,
+                    w: TAM_CELDA - PARED_OFFSET,
+                    h: TAM_CELDA - PARED_OFFSET,
+                    vida: TIPOS_PARED['metal'].vida
+                });
             }
             else if(Math.random() < 0.12) {
                 fila.push('ladrillo');
-                paredes.push({ tipo: 'ladrillo', x: c*TAM_CELDA, y: f*TAM_CELDA, w: TAM_CELDA, h: TAM_CELDA, vida: TIPOS_PARED['ladrillo'].vida });
+                paredes.push({
+                    tipo: 'ladrillo',
+                    x: c*TAM_CELDA + PARED_OFFSET/2,
+                    y: f*TAM_CELDA + PARED_OFFSET/2,
+                    w: TAM_CELDA - PARED_OFFSET,
+                    h: TAM_CELDA - PARED_OFFSET,
+                    vida: TIPOS_PARED['ladrillo'].vida
+                });
             }
             else if(Math.random() < 0.10) {
                 fila.push('agua');
+                paredes.push({
+                    tipo: 'agua',
+                    x: c*TAM_CELDA + PARED_OFFSET/2,
+                    y: f*TAM_CELDA + PARED_OFFSET/2,
+                    w: TAM_CELDA - PARED_OFFSET,
+                    h: TAM_CELDA - PARED_OFFSET,
+                    vida: TIPOS_PARED['agua'].vida
+                });
+            }
+            else if(Math.random() < 0.05) {
+                fila.push('arbusto');
+                paredes.push({
+                    tipo: 'arbusto',
+                    x: c*TAM_CELDA + PARED_OFFSET/2,
+                    y: f*TAM_CELDA + PARED_OFFSET/2,
+                    w: TAM_CELDA - PARED_OFFSET,
+                    h: TAM_CELDA - PARED_OFFSET,
+                    vida: TIPOS_PARED['arbusto'].vida
+                });
             }
             else {
                 fila.push(null);
@@ -105,24 +140,60 @@ function crearMapa() {
 let jugador, aguila;
 let enemigosNivel = 0;
 function colocarEntidades() {
+    // Águila al centro exacto del mapa
+    const centroCol = Math.floor(COLUMNAS_MAPA / 2);
+    const centroFil = Math.floor(FILAS_MAPA / 2);
+
     aguila = {
-        x: Math.floor(COLUMNAS_MAPA/2)*TAM_CELDA,
-        y: (FILAS_MAPA-1)*TAM_CELDA,
+        x: centroCol * TAM_CELDA,
+        y: centroFil * TAM_CELDA,
         w: TAM_CELDA, h: TAM_CELDA,
         viva: true
     };
+
+    // Rodear el águila de ladrillos (cruz y esquinas)
+    let defensas = [
+        [centroFil-1, centroCol],     // arriba
+        [centroFil+1, centroCol],     // abajo
+        [centroFil, centroCol-1],     // izquierda
+        [centroFil, centroCol+1],     // derecha
+        [centroFil-1, centroCol-1],   // esquina sup-izq
+        [centroFil-1, centroCol+1],   // esquina sup-der
+        [centroFil+1, centroCol-1],   // esquina inf-izq
+        [centroFil+1, centroCol+1],   // esquina inf-der
+    ];
+    // Limpia defensas anteriores
+    paredes = paredes.filter(p => {
+        let f = Math.round((p.y - PARED_OFFSET/2) / TAM_CELDA);
+        let c = Math.round((p.x - PARED_OFFSET/2) / TAM_CELDA);
+        return !defensas.some(([df,dc]) => df===f && dc===c);
+    });
+    // Añade nuevas defensas
+    for(const [f, c] of defensas) {
+        paredes.push({
+            tipo: 'ladrillo',
+            x: c * TAM_CELDA + PARED_OFFSET/2,
+            y: f * TAM_CELDA + PARED_OFFSET/2,
+            w: TAM_CELDA - PARED_OFFSET,
+            h: TAM_CELDA - PARED_OFFSET,
+            vida: TIPOS_PARED['ladrillo'].vida
+        });
+    }
+
     jugador = new Tanque(TAM_CELDA*7, TAM_CELDA*(FILAS_MAPA-4), 'usuario', true);
     generarEnemigos();
 }
 
+// Clase Tanque con objetivo configurable
 class Tanque {
-    constructor(x, y, tipo, esUsuario) {
+    constructor(x, y, tipo, esUsuario, objetivo = 'jugador') {
         this.x = x;
         this.y = y;
         this.w = TAM_CELDA;
         this.h = TAM_CELDA;
         this.tipo = tipo;
         this.esUsuario = esUsuario;
+        this.objetivo = objetivo; // 'jugador' o 'aguila'
         this.direccion = 'U';
         this.velocidad = esUsuario ? Math.max(2, Math.floor(TAM_CELDA/20)*2) : 1.5 + (nivel-1)*0.4;
         this.vida = esUsuario ? VIDAS_JUGADOR_MAX : 1;
@@ -138,7 +209,13 @@ class Tanque {
         let nx = this.x + dx*this.velocidad, ny = this.y + dy*this.velocidad;
         if(nx < 0 || ny < 0 || nx+this.w > lienzo.width || ny+this.h > lienzo.height) return false;
         for(const pared of paredes) {
-            if(colisionRectangulo({x:nx,y:ny,w:this.w,h:this.h}, pared)) return false;
+            // SOLO bloquean movimiento ladrillo y metal
+            if (
+                colisionRectangulo({x:nx,y:ny,w:this.w,h:this.h}, pared) &&
+                pared.tipo !== 'agua' && pared.tipo !== 'arbusto'
+            ) {
+                return false;
+            }
         }
         if(aguila.viva && colisionRectangulo({x:nx,y:ny,w:this.w,h:this.h}, aguila)) return false;
         for(const tanque of tanquesEnemigos.concat([jugador])) {
@@ -207,11 +284,16 @@ class Tanque {
     }
 }
 
+// Genera enemigos con objetivo dinámico según el nivel
 function generarEnemigos() {
     tanquesEnemigos = [];
     enemigosNivel = nivel + 1;
+
+    // A partir de nivel 3, 2 enemigos van al águila; antes, solo 1
+    let objetivoAguila = nivel < 3 ? 1 : 2;
     for (let i = 0; i < enemigosNivel; i++) {
-        let enemigo = new Tanque(TAM_CELDA + i*TAM_CELDA*2, TAM_CELDA, 'enemigo', false);
+        let objetivo = (i < objetivoAguila) ? 'aguila' : 'jugador';
+        let enemigo = new Tanque(TAM_CELDA + i*TAM_CELDA*2, TAM_CELDA, 'enemigo', false, objetivo);
         enemigo.velocidad = 1 + nivel * 0.4;
         tanquesEnemigos.push(enemigo);
     }
@@ -233,7 +315,7 @@ function bucleJuego() {
         for (let c=0; c<mapa[f].length; c++) {
             if(mapa[f][c] && (mapa[f][c]==='agua' || mapa[f][c]==='arbusto')) {
                 contexto.fillStyle = TIPOS_PARED[mapa[f][c]].color;
-                contexto.fillRect(c*TAM_CELDA, f*TAM_CELDA, TAM_CELDA, TAM_CELDA);
+                contexto.fillRect(c*TAM_CELDA + PARED_OFFSET/2, f*TAM_CELDA + PARED_OFFSET/2, TAM_CELDA - PARED_OFFSET, TAM_CELDA - PARED_OFFSET);
             }
         }
 
@@ -257,15 +339,71 @@ function bucleJuego() {
     jugador.dibujar();
     jugador.actualizarDisparos();
 
+    // Movimiento de ENEMIGOS: SOLO horizontal o vertical por frame
     tanquesEnemigos.forEach(enemigo => {
-        if (Math.abs(enemigo.x - jugador.x) > Math.abs(enemigo.y - jugador.y)) {
-            enemigo.direccion = (enemigo.x < jugador.x) ? 'R' : 'L';
-            enemigo.mover((enemigo.x < jugador.x)?1:-1,0);
-        } else {
-            enemigo.direccion = (enemigo.y < jugador.y) ? 'D' : 'U';
-            enemigo.mover(0,(enemigo.y < jugador.y)?1:-1);
+        let objetivo = (enemigo.objetivo === 'aguila') ? aguila : jugador;
+        if (enemigo.objetivo === 'aguila' && !aguila.viva) objetivo = jugador;
+
+        // Diferencia en celdas
+        const difX = objetivo.x - enemigo.x;
+        const difY = objetivo.y - enemigo.y;
+        let movido = false;
+
+        // Primero intenta moverse horizontal, luego vertical
+        if (Math.abs(difX) > 5) {
+            if (difX > 0) {
+                enemigo.direccion = 'R';
+                if (enemigo.puedeMover(1,0)) {
+                    enemigo.mover(1,0);
+                    movido = true;
+                }
+            } else {
+                enemigo.direccion = 'L';
+                if (enemigo.puedeMover(-1,0)) {
+                    enemigo.mover(-1,0);
+                    movido = true;
+                }
+            }
         }
-        if (Math.abs(enemigo.x - jugador.x) < 10 || Math.abs(enemigo.y - jugador.y) < 10) enemigo.disparar();
+        if (!movido && Math.abs(difY) > 5) {
+            if (difY > 0) {
+                enemigo.direccion = 'D';
+                if (enemigo.puedeMover(0,1)) {
+                    enemigo.mover(0,1);
+                    movido = true;
+                }
+            } else {
+                enemigo.direccion = 'U';
+                if (enemigo.puedeMover(0,-1)) {
+                    enemigo.mover(0,-1);
+                    movido = true;
+                }
+            }
+        }
+
+        // Si no pudo moverse, revisar si hay pared destructible y disparar
+        if (!movido) {
+            let dx = 0, dy = 0;
+            switch (enemigo.direccion) {
+                case 'R': dx = 1; break;
+                case 'L': dx = -1; break;
+                case 'D': dy = 1; break;
+                case 'U': dy = -1; break;
+            }
+            let rect = enemigo.obtenerRectangulo(dx * enemigo.velocidad, dy * enemigo.velocidad);
+            let obstaculo = paredes.find(
+                pared =>
+                    colisionRectangulo(rect, pared) &&
+                    TIPOS_PARED[pared.tipo].destructible
+            );
+            if (obstaculo) {
+                enemigo.disparar();
+            }
+        }
+
+        // Si está alineado con su objetivo, también dispara
+        if (Math.abs(enemigo.x - objetivo.x) < 10 || Math.abs(enemigo.y - objetivo.y) < 10) enemigo.disparar();
+
         enemigo.dibujar();
         enemigo.actualizarDisparos();
     });
